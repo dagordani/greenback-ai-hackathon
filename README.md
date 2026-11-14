@@ -2,6 +2,9 @@
 
 **Connect your books. See the green money your business qualifies for. Get it.**
 
+- **Live App:** [https://greenback.ai.studio](https://greenback.ai.studio)
+- **Repository:** [https://github.com/dagordani/greenback-ai-hackathon](https://github.com/dagordani/greenback-ai-hackathon)
+
 GreenBack is a full-stack environmental and clean-energy grant discovery, ledger verification, and pre-filled application workspace tailored for Utah small and medium-sized businesses.
 
 ## Features

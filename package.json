@@ -2,6 +2,11 @@
   "name": "greenback",
   "private": true,
   "version": "1.0.0",
+  "homepage": "https://greenback.ai.studio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dagordani/greenback-ai-hackathon.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
