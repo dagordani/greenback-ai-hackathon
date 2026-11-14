@@ -1,0 +1,1816 @@
+import React, { useState } from 'react';
+import {
+  Leaf,
+  Mail,
+  CheckCircle2,
+  Upload,
+  Sparkles,
+  FileText,
+  Send,
+  MessageSquare,
+  Users,
+  Database,
+  DollarSign,
+  X,
+  RefreshCw,
+  Check,
+  ExternalLink,
+  ShieldCheck,
+  Bookmark,
+  ArrowUpRight,
+  Zap,
+  Building2,
+  Layers,
+  Clock
+} from 'lucide-react';
+
+// ============================================================================
+// SIMPLE SAMPLE PROFILES & GRANTS
+// ============================================================================
+const INITIAL_COMPANY = {
+  contactName: 'jordan Smith',
+  name: 'Wasatch Peak Landscaping LLC',
+  field: 'Landscaping & Commercial Fleet',
+  email: 'finance@wasatchpeakutah.com',
+  ein: '87-0492811',
+  location: 'Salt Lake County, UT',
+  employees: 18,
+  revenue: 1420000,
+  cashReserves: 54000,
+  fuelAndEnergySpend: 24600,
+  accountingSource: 'QuickBooks Online',
+  crmConnected: false,
+  crmName: 'None'
+};
+
+const GRANTS = [
+  {
+    id: 'UT-DEQ-CLEAN-AIR',
+    title: 'Utah Clean Air Commercial Equipment Grant',
+    agency: 'Utah Dept. of Environmental Quality (DEQ)',
+    officialUrl: 'https://deq.utah.gov/air-quality/clean-air-grants',
+    statuteOrAln: 'Utah Code § 19-2-104 | DEQ-2026-CA',
+    verifiedDate: 'Verified today at 6:00 AM MT',
+    award: 35000,
+    matchRequired: 8750,
+    deadline: 'Dec 15, 2026',
+    matchScore: 96,
+    eligible: true,
+    estimatedReviewTime: '3–4 weeks',
+    expectedPayoutDate: 'Mid-January 2027',
+    approvalPrediction: 'High (Top 10% of Utah SMB applicants with verified QuickBooks ledger proof)',
+    ledgerCitation: 'QuickBooks Acct #6140 (Fleet Fuel: $24,600) & Acct #1010 (Operating Cash: $54,000)',
+    reason: 'Qualifies based on Salt Lake County location, $24.6k fuel/energy spend, and $54k cash reserves covering the $8,750 required match.'
+  },
+  {
+    id: 'RMP-WATTSMART-UT',
+    title: 'Wattsmart Business Energy & HVAC Retrofit Grant',
+    agency: 'Rocky Mountain Power & Utah OED',
+    officialUrl: 'https://www.rockymountainpower.net/savings-energy-choices/business/wattsmart-efficiency-incentives.html',
+    statuteOrAln: 'Utah PSC Tariff Schedule 140',
+    verifiedDate: 'Verified today at 6:00 AM MT',
+    award: 45000,
+    matchRequired: 13500,
+    deadline: 'Jan 30, 2027',
+    matchScore: 91,
+    eligible: true,
+    estimatedReviewTime: '2–3 weeks',
+    expectedPayoutDate: 'Early February 2027',
+    approvalPrediction: 'Very Strong (89% historical approval rate for Utah commercial utility customers)',
+    ledgerCitation: 'QuickBooks Acct #6210 (Commercial Utilities) & Payroll Headcount (18 FTE)',
+    reason: 'Qualifies based on Utah commercial utility spend and small business headcount (18 employees).'
+  },
+  {
+    id: 'USDA-REAP-RURAL',
+    title: 'USDA Rural Energy for America (REAP) Solar Grant',
+    agency: 'USDA Rural Development Utah',
+    officialUrl: 'https://www.rd.usda.gov/programs-services/energy-programs/rural-energy-america-program-renewable-energy-systems-energy-efficiency-improvement-guaranteed-loans/ut',
+    statuteOrAln: 'Federal ALN / CFDA #10.868',
+    verifiedDate: 'Verified today at 6:00 AM MT',
+    award: 80000,
+    matchRequired: 40000,
+    deadline: 'Mar 31, 2027',
+    matchScore: 42,
+    eligible: false,
+    estimatedReviewTime: '6–8 weeks',
+    expectedPayoutDate: 'May 2027',
+    approvalPrediction: 'Moderate (Competitive rural scoring pool)',
+    ledgerCitation: 'Company Address Profile: Salt Lake County (Non-Rural Classification)',
+    reason: 'Requires a Rural Utah county designation (e.g., Grand or Iron County). Salt Lake County is classified as urban.'
+  },
+  {
+    id: 'UT-FLEET-IDLE-DEMO',
+    title: 'Utah Idle-Free & Electric Auxiliary Power Grant',
+    agency: 'Utah Division of Air Quality (DAQ)',
+    officialUrl: 'https://deq.utah.gov/air-quality/clean-diesel-program',
+    statuteOrAln: 'Utah DAQ Clean Fleet #2026-09',
+    verifiedDate: 'Submitted Nov 2, 2026',
+    award: 18500,
+    matchRequired: 3700,
+    deadline: 'Nov 15, 2026',
+    matchScore: 98,
+    eligible: true,
+    estimatedReviewTime: '2–3 weeks',
+    expectedPayoutDate: 'Late November 2026',
+    approvalPrediction: 'Very High (98% match — currently in final agency review)',
+    ledgerCitation: 'QuickBooks Acct #6140 (Fleet Fuel) & Vehicle Asset Register',
+    reason: 'Pre-submitted demo application for idle-reduction and electric auxiliary fleet units.'
+  }
+];
+
+export default function App() {
+  const [company, setCompany] = useState(INITIAL_COMPANY);
+  const [grants, setGrants] = useState(GRANTS);
+  // Onboarding steps: 'join' | 'simple-info' | 'business-info' | 'connect-books' | 'dashboard'
+  const [onboardingStep, setOnboardingStep] = useState('join');
+  const [onboardingData, setOnboardingData] = useState({
+    contactName: 'Jordan Smith',
+    email: 'finance@wasatchpeakutah.com',
+    businessName: 'Wasatch Peak Landscaping LLC',
+    field: 'Landscaping & Commercial Fleet',
+    location: 'Salt Lake County, UT',
+    accountingSource: 'QuickBooks Online',
+    crmConnected: false
+  });
+  // Status map per grant: 'draft' | 'submitted' (pre-seed 1 demo submitted grant)
+  const [grantStatuses, setGrantStatuses] = useState({
+    'UT-FLEET-IDLE-DEMO': 'submitted'
+  });
+  // Active tab: 'available' | 'submitted' | 'ineligible'
+  const [grantsTab, setGrantsTab] = useState('available');
+  const [activeApplication, setActiveApplication] = useState(null);
+  // Step 1: 'heads-up' | Step 2: 'form'
+  const [applicationStep, setApplicationStep] = useState('heads-up');
+  const [applicationForm, setApplicationForm] = useState(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+
+  // Email-Only Notification Log
+  const [emailNotification, setEmailNotification] = useState({
+    to: INITIAL_COMPANY.email,
+    subject: 'GreenBack Alert: 2 Verified Utah Grants Matched (6:00 AM MT Digest)',
+    body: 'We cross-checked your QuickBooks ledger against official Utah DEQ & Rocky Mountain Power feeds. Utah Clean Air Commercial Equipment Grant ($35,000) is a 96% match.',
+    timestamp: 'Sent today at 6:00 AM MT'
+  });
+
+  // Internal AI Agent Chat State
+  const [chatMessages, setChatMessages] = useState([
+    {
+      role: 'agent',
+      text: 'Hi! I am your GreenBack AI Agent. Ask me anything about your grant matches, Utah eligibility rules, or how much cash match you need.'
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [floatingAiOpen, setFloatingAiOpen] = useState(false);
+
+  // CSV / Quick Edit State
+  const [formState, setFormState] = useState({
+    name: company.name,
+    email: company.email,
+    location: company.location,
+    revenue: company.revenue,
+    cashReserves: company.cashReserves,
+    fuelAndEnergySpend: company.fuelAndEnergySpend
+  });
+
+  // Finish Onboarding and transition to Dashboard
+  const handleFinishOnboarding = (selectedSource) => {
+    const finalSource = selectedSource || onboardingData.accountingSource;
+    const isRural =
+      onboardingData.location.toLowerCase().includes('rural') ||
+      onboardingData.location.toLowerCase().includes('grand');
+
+    const updatedCompany = {
+      ...company,
+      contactName: onboardingData.contactName || 'Founder',
+      name: onboardingData.businessName || company.name,
+      field: onboardingData.field || 'Small Business',
+      email: onboardingData.email || company.email,
+      location: onboardingData.location || company.location,
+      accountingSource: finalSource,
+      crmConnected: onboardingData.crmConnected,
+      crmName: onboardingData.crmConnected ? 'HubSpot CRM' : 'None'
+    };
+
+    setCompany(updatedCompany);
+    setFormState(prev => ({
+      ...prev,
+      name: updatedCompany.name,
+      email: updatedCompany.email,
+      location: updatedCompany.location
+    }));
+
+    setGrants(prev =>
+      prev.map(g => {
+        if (g.id === 'USDA-REAP-RURAL') {
+          return {
+            ...g,
+            eligible: isRural,
+            matchScore: isRural ? 95 : 42,
+            reason: isRural
+              ? 'Qualifies! Your rural Utah location and energy spend meet USDA REAP rules.'
+              : 'Requires a Rural Utah county designation (e.g., Grand County).'
+          };
+        }
+        return g;
+      })
+    );
+
+    const skippedBooks = finalSource === 'Not Connected Yet';
+    setEmailNotification({
+      to: updatedCompany.email,
+      subject: `Welcome to GreenBack, ${updatedCompany.name}! 2 Verified Grants Found`,
+      body: skippedBooks
+        ? `We matched 2 Utah grants for your ${updatedCompany.field} business in ${updatedCompany.location}. Connect your accounting software anytime to verify expenses and auto-fill applications.`
+        : `Connected to ${finalSource} for your ${updatedCompany.field} business. We found $80,000 in eligible Utah grants ready for review.`,
+      timestamp: 'Welcome email sent just now'
+    });
+
+    setOnboardingStep('dashboard');
+  };
+
+  // Open pre-filled application modal for review
+  const handleOpenApplication = (grant) => {
+    setActiveApplication(grant);
+    setApplicationStep('heads-up');
+    setReviewConfirmed(false);
+    setApplicationForm({
+      legalName: company.name,
+      ein: company.ein,
+      contactEmail: company.email,
+      county: company.location,
+      annualRevenue: company.revenue,
+      verifiedEnergySpend: company.fuelAndEnergySpend,
+      committedCashMatch: grant.matchRequired,
+      narrative: `Applicant (${company.name}) operates in ${company.location} with ${company.employees} employees and $${company.fuelAndEnergySpend.toLocaleString()}/yr in verified fuel and utility expenses (${grant.ledgerCitation}). Requesting $${grant.award.toLocaleString()} to transition to low-emission commercial equipment, backed by $${company.cashReserves.toLocaleString()} in verified cash reserves to cover the $${grant.matchRequired.toLocaleString()} match.`
+    });
+  };
+
+  // Simulate 6AM/6PM Email-Only Notification Check
+  const triggerProactiveCheck = async () => {
+    try {
+      const res = await fetch('https://api.grants.gov/v1/api/search2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: 1,
+          oppStatuses: 'forecasted|posted',
+          eligibilities: '22|23',
+          fundingCategories: 'EN|NR'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const hit = data?.data?.oppHits?.[0] || data?.oppHits?.[0];
+        if (hit && !grants.some(g => g.id === hit.number)) {
+          setGrants(prev => [
+            ...prev,
+            {
+              id: hit.number || 'FED-GRANT-LIVE',
+              title: hit.title || 'Federal Small Business Energy Grant',
+              agency: hit.agencyName || 'Grants.gov Live Feed',
+              officialUrl: `https://www.grants.gov/search-results-detail/${hit.id || ''}`,
+              statuteOrAln: `Grants.gov Opp #${hit.number || 'LIVE'}`,
+              verifiedDate: 'Verified just now via Grants.gov API',
+              award: 50000,
+              matchRequired: 10000,
+              deadline: hit.closeDate || '2027',
+              matchScore: 88,
+              eligible: true,
+              ledgerCitation: 'QuickBooks P&L Utility & Fleet Spend',
+              reason: 'Live federal grant fetched from Grants.gov matching small business energy criteria.'
+            }
+          ]);
+        }
+      }
+    } catch (e) {
+      // Fallback if offline or blocked by CORS
+    }
+
+    setEmailNotification({
+      to: company.email,
+      subject: `GreenBack 6:00 PM MT Email Digest: Verified Grants for ${company.name}`,
+      body: `Email dispatched to ${company.email}: Verified $${company.revenue.toLocaleString()} revenue from ${company.accountingSource}. 2 official grants are pre-filled and ready for your review.`,
+      timestamp: 'Email sent just now'
+    });
+  };
+
+  // Save CSV / Accounting Update
+  const handleSaveCsv = e => {
+    e.preventDefault();
+    const isRural = formState.location.toLowerCase().includes('rural') || formState.location.toLowerCase().includes('grand');
+    const updated = {
+      ...company,
+      name: formState.name,
+      email: formState.email,
+      location: formState.location,
+      revenue: Number(formState.revenue),
+      cashReserves: Number(formState.cashReserves),
+      fuelAndEnergySpend: Number(formState.fuelAndEnergySpend),
+      accountingSource: 'Uploaded CSV Ledger'
+    };
+    setCompany(updated);
+
+    // Re-score rural grant dynamically if location changed
+    setGrants(prev =>
+      prev.map(g => {
+        if (g.id === 'USDA-REAP-RURAL') {
+          return {
+            ...g,
+            eligible: isRural,
+            matchScore: isRural ? 95 : 42,
+            reason: isRural
+              ? 'Qualifies! Your rural Utah location and energy spend meet USDA REAP rules.'
+              : 'Requires a Rural Utah county designation (e.g., Grand County).'
+          };
+        }
+        return g;
+      })
+    );
+
+    setCsvModalOpen(false);
+    setEmailNotification({
+      to: formState.email,
+      subject: 'GreenBack Email Alert: Accounting CSV Imported & Grants Re-Verified',
+      body: `Updated revenue ($${Number(formState.revenue).toLocaleString()}) and sent updated grant eligibility links to ${formState.email}.`,
+      timestamp: 'Email sent just now'
+    });
+  };
+
+  // Ask the Internal AI Agent (Gemini API with deterministic fallback)
+  const handleSendMessage = async (customQuestion) => {
+    const question = (customQuestion || chatInput).trim();
+    if (!question) return;
+
+    const updatedMessages = [...chatMessages, { role: 'user', text: question }];
+    setChatMessages(updatedMessages);
+    setChatInput('');
+    setIsAiTyping(true);
+
+    try {
+      const apiKey = '';
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const systemContext = `You are GreenBack's helpful internal AI Grant Agent. Keep answers short (2-4 sentences), clear, and friendly.
+Company Profile:
+- Name: ${company.name} (${company.location})
+- Revenue: $${company.revenue.toLocaleString()}
+- Cash Reserves: $${company.cashReserves.toLocaleString()}
+- Annual Fuel & Energy Spend: $${company.fuelAndEnergySpend.toLocaleString()}
+- Accounting Source: ${company.accountingSource}
+- CRM Connected: ${company.crmConnected ? company.crmName : 'No'}
+
+Available Grants:
+${grants.map(g => `- ${g.title}: $${g.award.toLocaleString()} award, $${g.matchRequired.toLocaleString()} match required, Score: ${g.matchScore}%, Eligible: ${g.eligible}. Reason: ${g.reason}`).join('\n')}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: question }] }],
+          systemInstruction: { parts: [{ text: systemContext }] }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (reply) {
+          setChatMessages([...updatedMessages, { role: 'agent', text: reply }]);
+          setIsAiTyping(false);
+          return;
+        }
+      }
+      throw new Error('Fallback to local agent response');
+    } catch (err) {
+      // Instant helpful fallback if API key is empty or offline
+      const q = question.toLowerCase();
+      let reply = `Based on your ${company.accountingSource} summary ($${company.revenue.toLocaleString()} revenue and $${company.cashReserves.toLocaleString()} cash reserves), you qualify for the Utah Clean Air Grant ($35,000) and the Wattsmart Energy Grant ($45,000).`;
+
+      if (q.includes('usda') || q.includes('rural') || q.includes('ineligible') || q.includes('why')) {
+        reply = `You currently match at 96% for the Utah Clean Air Grant because you are in ${company.location} with $${company.fuelAndEnergySpend.toLocaleString()}/yr in fuel & energy spend. The USDA REAP grant is marked ineligible unless your business operates in a rural Utah county like Grand County.`;
+      } else if (q.includes('match') || q.includes('cash') || q.includes('cost')) {
+        reply = `For the $35,000 Utah Clean Air Grant, you need an $8,750 (25%) cost-share match. Since your ledger shows $${company.cashReserves.toLocaleString()} in cash reserves, you easily meet the financial qualification.`;
+      } else if (q.includes('apply') || q.includes('document')) {
+        reply = `You can click "Apply Now" on any eligible grant card. I will automatically pre-fill your revenue, fuel/utility spend from ${company.accountingSource}${company.crmConnected ? `, and customer fleet data from ${company.crmName}` : ''}.`;
+      }
+
+      setChatMessages([...updatedMessages, { role: 'agent', text: reply }]);
+      setIsAiTyping(false);
+    }
+  };
+
+  // Locked-in Emerald Glass Design Tokens
+  const themeStyles = {
+    pageBg: 'bg-[#F6F9F7] text-slate-900',
+    headerBg: 'bg-white/80 border-emerald-900/10',
+    card: 'bg-white border border-slate-200/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)]',
+    grantGrid: 'grid grid-cols-1 gap-5',
+    accentBox: 'bg-[#0B291E] text-white rounded-3xl shadow-lg border border-emerald-800/40',
+    pillBg: 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+  };
+
+  const eligibleGrants = grants.filter(g => g.eligible && grantStatuses[g.id] !== 'submitted');
+  const submittedGrants = grants.filter(g => grantStatuses[g.id] === 'submitted');
+  const ineligibleGrants = grants.filter(g => !g.eligible && grantStatuses[g.id] !== 'submitted');
+  const totalAvailableAward = eligibleGrants.reduce((sum, g) => sum + g.award, 0);
+
+  return (
+    <div className={`min-h-screen font-sans antialiased selection:bg-emerald-600 selection:text-white transition-colors duration-300 ${themeStyles.pageBg}`}>
+      {/* Subtle Ambient Top Glow */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 h-64 bg-gradient-to-b from-emerald-500/[0.06] to-transparent z-0" />
+
+      {/* =====================================================================
+          FLOATING GLASS HEADER + DESIGN SWITCHER
+      ===================================================================== */}
+      <header className={`border-b sticky top-0 z-30 backdrop-blur-xl ${themeStyles.headerBg}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 rounded-2xl bg-[#0B291E] flex items-center justify-center text-white shadow-md shadow-emerald-900/20">
+              <Leaf className="w-5 h-5 text-emerald-400 stroke-[2.3]" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="font-extrabold text-lg tracking-tight text-slate-900">
+                  Green<span className="text-emerald-500">Back</span>
+                </h1>
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-[#0B291E] text-emerald-400">
+                  SALT LAKE CITY &middot; CLEAN AIR &amp; ENERGY
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Connect your books. See the green money your business qualifies for. Get it.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {onboardingStep !== 'dashboard' ? (
+              <button
+                onClick={() => setOnboardingStep('dashboard')}
+                className="px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs transition"
+              >
+                Skip to Dashboard &rarr;
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setOnboardingStep('join')}
+                  className="px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200/80 transition"
+                >
+                  Onboarding Flow
+                </button>
+                <button
+                  onClick={triggerProactiveCheck}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold bg-emerald-950 hover:bg-emerald-900 text-white shadow-sm transition"
+                >
+                  <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                  6PM Email Sweep
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {onboardingStep !== 'dashboard' ? (
+        /* ===================================================================
+           INNOVATIVE 4-STEP ONBOARDING FLOW
+        =================================================================== */
+        <main className="relative z-10 max-w-xl mx-auto px-4 py-12">
+          {/* Segmented Progress Bar */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {['join', 'simple-info', 'business-info', 'connect-books'].map((step, idx) => {
+              const activeIdx = ['join', 'simple-info', 'business-info', 'connect-books'].indexOf(onboardingStep);
+              return (
+                <div
+                  key={step}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    idx <= activeIdx ? 'w-10 bg-emerald-600' : 'w-3 bg-slate-200'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          {onboardingStep === 'join' && (
+            /* STEP 1: CLICK "JOIN" */
+            <div className="bg-white border border-slate-200/90 rounded-[32px] p-8 md:p-11 shadow-[0_20px_50px_rgba(15,23,42,0.06)] text-center space-y-6 relative overflow-hidden">
+              <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/25">
+                <Leaf className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2.5">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Autonomous Grant Engine for Utah SMBs
+                </span>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                  Find &amp; win environmental grants automatically
+                </h2>
+                <p className="text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+                  GreenBack connects to your books, checks official Utah &amp; federal grant feeds twice a day, and pre-fills your applications in seconds.
+                </p>
+              </div>
+
+              {/* Mini Preview Metric Pills */}
+              <div className="grid grid-cols-3 gap-2.5 pt-1 text-left">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Avg Match</div>
+                  <div className="text-sm font-extrabold text-emerald-700 mt-0.5">$80,000</div>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Daily Sweeps</div>
+                  <div className="text-sm font-extrabold text-slate-900 mt-0.5">6AM &amp; 6PM</div>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Paperwork</div>
+                  <div className="text-sm font-extrabold text-slate-900 mt-0.5">Pre-Filled</div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setOnboardingStep('simple-info')}
+                  className="w-full py-4 px-6 rounded-2xl text-base font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2"
+                >
+                  Join GreenBack &rarr;
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-5 text-xs text-slate-500 pt-1">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Takes 60 seconds
+                </span>
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Official .gov &amp; Utility feeds
+                </span>
+              </div>
+            </div>
+          )}
+
+          {onboardingStep === 'simple-info' && (
+            /* STEP 2: SIMPLE INFO -> START */
+            <div className="bg-white border border-slate-200/90 rounded-[32px] p-8 md:p-10 shadow-sm space-y-6">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  Step 1 of 3 &bull; Welcome
+                </span>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 mt-1">
+                  Let&apos;s start with some simple info
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Where should we send your 6:00 AM &amp; 6:00 PM MT grant match emails?
+                </p>
+              </div>
+
+              <div className="space-y-4 text-sm">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardingData.contactName}
+                    onChange={e => setOnboardingData({ ...onboardingData, contactName: e.target.value })}
+                    placeholder="e.g. Jordan Smith"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Work Email (For Grant Alerts)
+                  </label>
+                  <input
+                    type="email"
+                    value={onboardingData.email}
+                    onChange={e => setOnboardingData({ ...onboardingData, email: e.target.value })}
+                    placeholder="you@company.com"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={() => setOnboardingStep('join')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                >
+                  &larr; Back
+                </button>
+                <button
+                  onClick={() => setOnboardingStep('business-info')}
+                  className="px-8 py-3.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 transition"
+                >
+                  Start &rarr;
+                </button>
+              </div>
+            </div>
+          )}
+
+          {onboardingStep === 'business-info' && (
+            /* STEP 3: BROAD INFO ABOUT YOUR BUSINESS (NAME & FIELD) */
+            <div className="bg-white border border-slate-200/90 rounded-[32px] p-8 md:p-10 shadow-sm space-y-6">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  Step 2 of 3 &bull; Your Business
+                </span>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 mt-1">
+                  Tell us a little about your business
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  We use your business field and Utah county to filter out irrelevant grants.
+                </p>
+              </div>
+
+              <div className="space-y-4 text-sm">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardingData.businessName}
+                    onChange={e => setOnboardingData({ ...onboardingData, businessName: e.target.value })}
+                    placeholder="e.g. Wasatch Peak Landscaping LLC"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Business Field / Industry
+                  </label>
+                  <select
+                    value={onboardingData.field}
+                    onChange={e => setOnboardingData({ ...onboardingData, field: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Landscaping & Commercial Fleet">Landscaping &amp; Commercial Fleet</option>
+                    <option value="Manufacturing & HVAC">Manufacturing &amp; Facility Operations</option>
+                    <option value="Logistics, Delivery & Shuttle">Logistics, Delivery &amp; Shuttle</option>
+                    <option value="Agriculture & Rural Energy">Agriculture &amp; Rural Operations</option>
+                    <option value="Retail, Food & Hospitality">Retail, Food &amp; Hospitality</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Utah County Location
+                  </label>
+                  <select
+                    value={onboardingData.location}
+                    onChange={e => setOnboardingData({ ...onboardingData, location: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Salt Lake County, UT">Salt Lake County, UT</option>
+                    <option value="Utah County, UT">Utah County, UT</option>
+                    <option value="Grand County, UT (Rural)">Grand County, UT (Rural Utah)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={() => setOnboardingStep('simple-info')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                >
+                  &larr; Back
+                </button>
+                <button
+                  onClick={() => setOnboardingStep('connect-books')}
+                  className="px-8 py-3.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 transition"
+                >
+                  Next: Connect the Books &rarr;
+                </button>
+              </div>
+            </div>
+          )}
+
+          {onboardingStep === 'connect-books' && (
+            /* STEP 4: CONNECT THE BOOKS -> DASHBOARD */
+            <div className="bg-white border border-slate-200/90 rounded-[32px] p-8 md:p-10 shadow-sm space-y-6">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  Step 3 of 3 &bull; Connect the Books
+                </span>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 mt-1">
+                  Connect your accounting software
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  We scan your fuel, utility, and cash reserve lines to prove grant eligibility automatically.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => handleFinishOnboarding('QuickBooks Online')}
+                  className="w-full p-4 rounded-2xl border-2 border-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 flex items-center justify-between text-left transition"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Connect QuickBooks Online</div>
+                      <div className="text-xs text-slate-500">1-click read-only sync (Recommended)</div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-xl border border-emerald-200">
+                    Connect &rarr;
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleFinishOnboarding('Xero Accounting')}
+                  className="w-full p-4 rounded-2xl border border-slate-200 hover:border-emerald-400 bg-white flex items-center justify-between text-left transition"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Connect Xero Accounting</div>
+                      <div className="text-xs text-slate-500">Sync P&amp;L and balance sheet</div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700">Connect &rarr;</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFinishOnboarding('Uploaded CSV Ledger');
+                    setCsvModalOpen(true);
+                  }}
+                  className="w-full p-4 rounded-2xl border border-slate-200 hover:border-emerald-400 bg-white flex items-center justify-between text-left transition"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-slate-100 text-emerald-700 flex items-center justify-center">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Upload Accounting CSV</div>
+                      <div className="text-xs text-slate-500">Upload or enter revenue, cash &amp; energy spend</div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700">Upload &rarr;</span>
+                </button>
+              </div>
+
+              {/* Optional CRM Checkbox */}
+              <label className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={onboardingData.crmConnected}
+                  onChange={e => setOnboardingData({ ...onboardingData, crmConnected: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>
+                  Also connect <strong>CRM (HubSpot)</strong> to include customer project impact data
+                </span>
+              </label>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setOnboardingStep('business-info')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 transition"
+                >
+                  &larr; Back
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleFinishOnboarding('Not Connected Yet')}
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition"
+                >
+                  Skip &amp; Connect Later &rarr;
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      ) : activeApplication && applicationForm ? (
+        /* ===================================================================
+           FULL-PAGE GRANT APPLICATION WORKFLOW
+        =================================================================== */
+        <main className="relative z-10 max-w-4xl mx-auto px-4 py-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setActiveApplication(null)}
+              className="text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white border border-slate-200/90 shadow-2xs"
+            >
+              &larr; Back to Grants Workspace
+            </button>
+          </div>
+
+          {applicationStep === 'heads-up' ? (
+            /* STEP 1: SUPER SIMPLE, FRIENDLY HEADS-UP */
+            <div className="bg-white border border-emerald-200/90 rounded-[32px] p-10 md:p-14 shadow-[0_20px_50px_rgba(16,185,129,0.08)] text-center max-w-2xl mx-auto space-y-6 my-6">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
+                <Sparkles className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
+                  We filled everything out for you! 🌱
+                </h2>
+                <p className="text-base text-slate-600 leading-relaxed">
+                  Your application for the <strong className="text-slate-900">{activeApplication.title}</strong> is ready.
+                  Please give your numbers a quick 1-minute look before submitting—applications that are personally
+                  reviewed have a much higher chance of winning the grant!
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveApplication(null)}
+                  className="px-5 py-3 rounded-2xl text-sm font-semibold text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplicationStep('form')}
+                  className="px-8 py-3.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition"
+                >
+                  Next &rarr;
+                </button>
+              </div>
+            </div>
+          ) : applicationStep === 'submitted-summary' ? (
+            /* STEP 3: POST-APPLY ESTIMATED TIME & PREDICTIONS SCREEN */
+            <div className="bg-white border border-emerald-200 rounded-[32px] p-8 md:p-12 shadow-sm max-w-2xl mx-auto space-y-6 my-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-13 h-13 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                    Application Submitted &amp; Emailed
+                  </span>
+                  <h2 className="text-2xl font-extrabold text-slate-900">
+                    You&apos;re in! Here is what to expect next:
+                  </h2>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs text-slate-500">Estimated Review Time</div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-1">
+                    {activeApplication.estimatedReviewTime || '3–4 weeks'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    By {activeApplication.agency}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <div className="text-xs text-emerald-800">AI Approval Prediction</div>
+                  <div className="text-lg font-extrabold text-emerald-700 mt-1">
+                    {activeApplication.matchScore}% Likely
+                  </div>
+                  <div className="text-[11px] text-emerald-800 mt-0.5">
+                    Verified ledger boosts priority
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs text-slate-500">Expected Decision &amp; Funds</div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-1">
+                    {activeApplication.expectedPayoutDate || 'January 2027'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Award: ${activeApplication.award.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-950 leading-relaxed">
+                <strong>Why your prediction is strong:</strong> {activeApplication.approvalPrediction || 'Applications backed by direct QuickBooks/Xero expense line-items pass state financial audit checks 2x faster.'} We will email <strong>{company.email}</strong> the moment the agency updates your status.
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveApplication(null);
+                    setGrantsTab('submitted');
+                  }}
+                  className="px-6 py-3.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition"
+                >
+                  View in Submitted Grants Tab &rarr;
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* STEP 2: FULL-PAGE SPACIOUS APPLICATION FORM */
+            <div className="bg-white border border-slate-200 rounded-[32px] p-6 md:p-10 shadow-sm space-y-6">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    Auto-Populated from {company.accountingSource}
+                  </span>
+                  <h2 className="text-xl font-extrabold text-slate-900 mt-2">
+                    {activeApplication.title}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {activeApplication.agency} &bull; Award Amount:{' '}
+                    <strong className="text-emerald-700">${activeApplication.award.toLocaleString()}</strong> &bull; Deadline: {activeApplication.deadline}
+                  </p>
+                </div>
+
+                <a
+                  href={activeApplication.officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold flex items-center gap-1.5 text-xs"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Official Grant Website ({activeApplication.statuteOrAln})
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="space-y-5 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Legal Business Name
+                    </label>
+                    <input
+                      type="text"
+                      value={applicationForm.legalName}
+                      onChange={e =>
+                        setApplicationForm({ ...applicationForm, legalName: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Applicant Notification Email
+                    </label>
+                    <input
+                      type="email"
+                      value={applicationForm.contactEmail}
+                      onChange={e =>
+                        setApplicationForm({ ...applicationForm, contactEmail: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Federal EIN &amp; Registered Utah County
+                    </label>
+                    <input
+                      type="text"
+                      value={`${applicationForm.ein} • ${applicationForm.county}`}
+                      readOnly
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Verified Ledger Citation (Source of Truth)
+                    </label>
+                    <input
+                      type="text"
+                      value={activeApplication.ledgerCitation}
+                      readOnly
+                      className="w-full px-4 py-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-emerald-900 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Annual Gross Revenue ($)
+                    </label>
+                    <input
+                      type="number"
+                      value={applicationForm.annualRevenue}
+                      onChange={e =>
+                        setApplicationForm({
+                          ...applicationForm,
+                          annualRevenue: Number(e.target.value)
+                        })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Annual Fuel &amp; Utility Spend ($)
+                    </label>
+                    <input
+                      type="number"
+                      value={applicationForm.verifiedEnergySpend}
+                      onChange={e =>
+                        setApplicationForm({
+                          ...applicationForm,
+                          verifiedEnergySpend: Number(e.target.value)
+                        })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-amber-700 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Committed Cost-Share Match ($)
+                    </label>
+                    <input
+                      type="number"
+                      value={applicationForm.committedCashMatch}
+                      onChange={e =>
+                        setApplicationForm({
+                          ...applicationForm,
+                          committedCashMatch: Number(e.target.value)
+                        })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-emerald-700 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Project Impact &amp; Financial Justification Narrative (Editable)
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={applicationForm.narrative}
+                    onChange={e =>
+                      setApplicationForm({ ...applicationForm, narrative: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 leading-relaxed focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reviewConfirmed}
+                    onChange={e => setReviewConfirmed(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs text-slate-800 leading-relaxed">
+                    <strong>Applicant Review Confirmation:</strong> I have carefully reviewed the pre-filled financial figures from{' '}
+                    <strong>{company.accountingSource}</strong> and the project narrative above, and I confirm everything is accurate for submission.
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setApplicationStep('heads-up')}
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  >
+                    &larr; Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGrantStatuses({ ...grantStatuses, [activeApplication.id]: 'draft' });
+                      setEmailNotification({
+                        to: company.email,
+                        subject: `Saved in Drafts: ${activeApplication.title}`,
+                        body: `Your application is saved in Drafts. Direct official grant link (${activeApplication.officialUrl}) has been emailed to ${company.email}.`,
+                        timestamp: 'Email sent just now'
+                      });
+                      setActiveApplication(null);
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5"
+                  >
+                    <Bookmark className="w-4 h-4" /> Save in Drafts (With Official Grant Link)
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!reviewConfirmed}
+                  onClick={() => {
+                    setGrantStatuses({ ...grantStatuses, [activeApplication.id]: 'submitted' });
+                    setEmailNotification({
+                      to: company.email,
+                      subject: `Application Submitted: ${activeApplication.title}`,
+                      body: `Confirmation emailed to ${company.email}. Estimated agency review time is ${activeApplication.estimatedReviewTime || '3–4 weeks'} with a ${activeApplication.matchScore}% approval prediction.`,
+                      timestamp: 'Email sent just now'
+                    });
+                    setApplicationStep('submitted-summary');
+                  }}
+                  className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+                    reviewConfirmed
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Confirm &amp; Submit Application
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      ) : (
+        /* ===================================================================
+           INNOVATIVE MAIN WORKSPACE DASHBOARD
+        =================================================================== */
+        <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-7 space-y-7 pb-28">
+          {/* 1. SLEEK FLOATING EMAIL DISPATCH PILL */}
+          {emailNotification && (
+            <div className="bg-white/90 backdrop-blur-md border border-emerald-200/90 rounded-2xl px-4 py-3 shadow-xs flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
+                      Email Alert Dispatched
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                      {emailNotification.to}
+                    </span>
+                    <span className="text-[11px] text-slate-400">&bull; {emailNotification.timestamp}</span>
+                  </div>
+                  <p className="text-xs text-slate-700 truncate mt-0.5">
+                    <strong className="text-slate-900">{emailNotification.subject}:</strong> {emailNotification.body}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEmailNotification(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* 2. WIDE SIDE-TO-SIDE HERO BANNER + FULL-WIDTH ACCOUNTING SUMMARY */}
+          <div className="space-y-5">
+            {/* Full-Width Emerald Unlock Banner */}
+            <div className={`w-full p-6 md:px-9 md:py-8 flex flex-col justify-between relative overflow-hidden ${themeStyles.accentBox}`}>
+              <div className="pointer-events-none absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-emerald-400/10 blur-3xl" />
+
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-emerald-400">
+                    SALT LAKE CITY &middot; CLEAN AIR &amp; ENERGY
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/10 text-emerald-200 border border-white/15">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    {company.location}
+                  </span>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-emerald-300/90 mb-1">
+                      Green<span className="text-emerald-400">Back</span> &bull; Live Green Money Unlocked
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black tracking-tight text-[#F4F3EF]">
+                      ${totalAvailableAward.toLocaleString()}
+                    </div>
+                    <p className="text-sm text-slate-200/95 mt-2">
+                      Connect your books. See the green money your business qualifies for. Get it.
+                    </p>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs text-emerald-100">
+                    Pre-verified across <strong className="text-emerald-400">{eligibleGrants.length} open grants</strong> for{' '}
+                    <span className="underline decoration-emerald-400/60 font-semibold text-white">{company.name}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div>
+                  <span className="text-emerald-200/75 block text-[10px] uppercase font-semibold tracking-wider">
+                    Ledger Source
+                  </span>
+                  <span className="font-bold text-white flex items-center gap-1.5 mt-0.5 text-sm">
+                    <Database className="w-3.5 h-3.5 text-emerald-300" />
+                    {company.accountingSource}
+                    {company.crmConnected && ` + ${company.crmName}`}
+                  </span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-emerald-200/75 block text-[10px] uppercase font-semibold tracking-wider">
+                    Daily Auto-Sweep
+                  </span>
+                  <span className="font-bold text-emerald-300 mt-0.5 block text-sm">
+                    6:00 AM &amp; 6:00 PM MT
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Full-Width Accounting Summary + Connection CTA Bar */}
+            <div className={`w-full p-6 flex flex-col justify-between space-y-5 ${themeStyles.card}`}>
+              {/* Top Company Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-extrabold text-slate-900">{company.name}</h2>
+                      {company.field && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {company.field}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Alerts sent strictly via email to <strong className="text-slate-700">{company.email}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Read-Only Ledger Sync
+                </span>
+              </div>
+
+              {/* 3 Interactive Accounting Signals */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/80">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                    <span>Annual Revenue</span>
+                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-1">
+                    ${company.revenue.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                    &bull; SMB Size Cap Verified
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/90">
+                  <div className="flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                    <span>Cash Reserves</span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <div className="text-lg font-extrabold text-emerald-700 mt-1">
+                    ${company.cashReserves.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-emerald-800 font-semibold mt-0.5">
+                    &bull; Covers 25% Cost-Share
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80">
+                  <div className="flex items-center justify-between text-[11px] text-amber-900 font-medium">
+                    <span>Fuel &amp; Utility Spend</span>
+                    <Zap className="w-3.5 h-3.5 text-amber-600" />
+                  </div>
+                  <div className="text-lg font-extrabold text-amber-700 mt-1">
+                    ${company.fuelAndEnergySpend.toLocaleString()}/yr
+                  </div>
+                  <div className="text-[10px] text-amber-800 font-semibold mt-0.5">
+                    &bull; Primary Grant Trigger
+                  </div>
+                </div>
+              </div>
+
+              {/* Call-to-Action Headline + 3 Connection Buttons */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    Connect your books. See the green money your business qualifies for. Get it.
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Switch accounting provider, upload a fresh CSV, or link your CRM anytime.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => {
+                      const nextSource =
+                        company.accountingSource === 'QuickBooks Online' ? 'Xero Accounting' : 'QuickBooks Online';
+                      setCompany({ ...company, accountingSource: nextSource });
+                      setEmailNotification({
+                        to: company.email,
+                        subject: `GreenBack Email Confirmation: Connected to ${nextSource}`,
+                        body: `Your ${nextSource} read-only ledger is synced. You will receive email-only notifications at 6:00 AM and 6:00 PM MT when new grants match.`,
+                        timestamp: 'Email sent just now'
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow-2xs"
+                  >
+                    <Database className="w-3 h-3" />
+                    Connect QuickBooks / Xero
+                  </button>
+
+                  <button
+                    onClick={() => setCsvModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition"
+                  >
+                    <Upload className="w-3 h-3 text-emerald-600" />
+                    Upload Accounting CSV
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const nextState = !company.crmConnected;
+                      setCompany({
+                        ...company,
+                        crmConnected: nextState,
+                        crmName: nextState ? 'HubSpot CRM' : 'None'
+                      });
+                      setEmailNotification({
+                        to: company.email,
+                        subject: nextState ? 'GreenBack Email Alert: HubSpot CRM Connected' : 'GreenBack Email Alert: CRM Disconnected',
+                        body: nextState
+                          ? 'Synced client projects & service locations to strengthen grant impact applications.'
+                          : 'CRM disconnected from grant profile.',
+                        timestamp: 'Email sent just now'
+                      });
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border transition ${
+                      company.crmConnected
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <Users className="w-3 h-3 text-emerald-600" />
+                    {company.crmConnected ? 'CRM Connected' : 'Connect CRM (Optional)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. GRANTS WORKSPACE WITH SEGMENTED PILL TABS & CONFIDENCE RING CARDS */}
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Sleek 3-Tab Segmented Control */}
+              <div className="inline-flex flex-wrap p-1.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs gap-1">
+                <button
+                  type="button"
+                  onClick={() => setGrantsTab('available')}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 ${
+                    grantsTab === 'available'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  Potential Grants to Apply
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] ${
+                      grantsTab === 'available'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {eligibleGrants.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGrantsTab('submitted')}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 ${
+                    grantsTab === 'submitted'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  Submitted Applications
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] ${
+                      grantsTab === 'submitted'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {submittedGrants.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGrantsTab('ineligible')}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-2 ${
+                    grantsTab === 'ineligible'
+                      ? 'bg-slate-800 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  Not Qualified
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] ${
+                      grantsTab === 'ineligible'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {ineligibleGrants.length}
+                  </span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 rounded-2xl">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                Verified .gov &amp; Utility Portals Only
+              </div>
+            </div>
+
+            {/* Grant Cards Grid */}
+            <div className={themeStyles.grantGrid}>
+              {grants
+                .filter(grant => {
+                  if (grantsTab === 'submitted') return grantStatuses[grant.id] === 'submitted';
+                  if (grantsTab === 'ineligible') return !grant.eligible && grantStatuses[grant.id] !== 'submitted';
+                  return grant.eligible && grantStatuses[grant.id] !== 'submitted';
+                })
+                .map(grant => {
+                  const status = grantStatuses[grant.id];
+                  const netBenefit = grant.award - grant.matchRequired;
+                  return (
+                    <div
+                      key={grant.id}
+                      className={`p-6 transition-all duration-200 flex flex-col justify-between group ${themeStyles.card} ${
+                        grant.eligible
+                          ? 'hover:border-emerald-400 hover:-translate-y-0.5'
+                          : 'bg-slate-100/70 opacity-90'
+                      }`}
+                    >
+                      <div className="space-y-4">
+                        {/* Card Top Header: Confidence Gauge + Title + Award */}
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="flex items-start gap-3.5">
+                            {/* Visual Circular Match Ring */}
+                            <div
+                              className={`w-13 h-13 rounded-2xl flex flex-col items-center justify-center shrink-0 border ${
+                                grant.eligible
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                  : 'bg-slate-100 border-slate-300 text-slate-500'
+                              }`}
+                            >
+                              <span className="text-sm font-black leading-none">{grant.matchScore}%</span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider mt-0.5">Match</span>
+                            </div>
+
+                            <div>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-slate-500">
+                                  {grant.agency}
+                                </span>
+                                <span className="text-slate-300">&bull;</span>
+                                <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> Due {grant.deadline}
+                                </span>
+                                {status === 'draft' && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                    Draft Saved
+                                  </span>
+                                )}
+                                {status === 'submitted' && (
+                                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                                    Submitted
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="text-lg font-extrabold text-slate-900 mt-1 group-hover:text-emerald-800 transition-colors">
+                                {grant.title}
+                              </h3>
+                            </div>
+                          </div>
+
+                          {/* Award & Cost-Share Pill */}
+                          <div className="text-right bg-emerald-50/70 border border-emerald-200/80 px-4 py-2 rounded-2xl">
+                            <div className="text-2xl font-black text-emerald-700 leading-none">
+                              ${grant.award.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] font-semibold text-slate-500 mt-1">
+                              Cost-Share: ${grant.matchRequired.toLocaleString()} &bull; Net +${netBenefit.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Qualification Explanation */}
+                        <p className="text-xs text-slate-700 leading-relaxed bg-slate-50/90 p-3.5 rounded-2xl border border-slate-200/70">
+                          {grant.reason}
+                        </p>
+
+                        {/* Submitted Prediction Banner */}
+                        {status === 'submitted' && (
+                          <div className="px-4 py-3 rounded-2xl bg-emerald-100/70 border border-emerald-300 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-2">
+                            <span>
+                              <strong>Est. Review Time:</strong> {grant.estimatedReviewTime || '3–4 weeks'} &bull;{' '}
+                              <strong>Expected Decision:</strong> {grant.expectedPayoutDate || 'Jan 2027'}
+                            </span>
+                            <span className="font-extrabold text-emerald-800">
+                              AI Prediction: {grant.matchScore}% Approval Odds
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Trust & Ledger Line-Item Proof Strip */}
+                        <div className="px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <div className="flex items-center gap-2 text-slate-700">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>
+                              <strong className="text-slate-900">{grant.statuteOrAln}</strong> &bull; Verified via{' '}
+                              <span className="font-medium text-emerald-800">{grant.ledgerCitation}</span>
+                            </span>
+                          </div>
+                          <a
+                            href={grant.officialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 shrink-0"
+                          >
+                            Official Portal <ArrowUpRight className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Card Footer Actions */}
+                      <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <button
+                          onClick={() => {
+                            setFloatingAiOpen(true);
+                            handleSendMessage(
+                              `What are the qualifications for the ${grant.title} and why did we score ${grant.matchScore}%?`
+                            );
+                          }}
+                          className="text-xs font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-emerald-50 transition"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                          Ask AI Agent about this grant
+                        </button>
+
+                        {grant.eligible && (
+                          <button
+                            onClick={() => handleOpenApplication(grant)}
+                            className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-1.5 ${
+                              status === 'submitted'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : status === 'draft'
+                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20'
+                            }`}
+                          >
+                            {status === 'submitted' ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" /> View Submitted Application
+                              </>
+                            ) : status === 'draft' ? (
+                              <>
+                                <Bookmark className="w-3.5 h-3.5" /> Resume Draft Application
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-3.5 h-3.5" /> Apply Now (Review Form) &rarr;
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </section>
+        </main>
+      )}
+
+      {/* =====================================================================
+          STICKY SIDE AI AGENT AVAILABILITY ICON & FULL CONVERSATION POPUP
+          Always visible on the side; opens a rich conversation drawer
+      ===================================================================== */}
+      <div className="fixed right-5 bottom-6 z-40 flex flex-col items-end">
+        {floatingAiOpen && (
+          <div className="mb-3 w-[92vw] sm:w-[420px] bg-white border border-emerald-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[520px]">
+            <div className="bg-emerald-600 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="relative p-1.5 rounded-xl bg-emerald-500/60">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-200 animate-ping" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold">GreenBack AI Advisor</div>
+                  <div className="text-[11px] text-emerald-100">
+                    Online 24/7 &bull; Connected to {company.accountingSource}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setFloatingAiOpen(false)}
+                className="text-emerald-100 hover:text-white p-1.5 rounded-lg hover:bg-emerald-500/40"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Question Chips inside Popup */}
+            <div className="px-4 py-2.5 bg-emerald-50/70 border-b border-emerald-100 flex flex-wrap gap-1.5">
+              {[
+                'Which grants do I qualify for?',
+                'Do we have enough cash match?',
+                'Why is USDA REAP not qualified?'
+              ].map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendMessage(q)}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition font-medium"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-emerald-600 text-white font-medium'
+                        : 'bg-white border border-slate-200 text-slate-800 shadow-2xs'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isAiTyping && (
+                <div className="text-xs text-slate-500 italic px-2">
+                  GreenBack AI is checking your ledger and grant rules...
+                </div>
+              )}
+            </div>
+
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleSendMessage();
+              }}
+              className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                placeholder="Ask about a grant or qualification..."
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="submit"
+                className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        )}
+
+        <button
+          onClick={() => setFloatingAiOpen(!floatingAiOpen)}
+          className="group flex items-center gap-2.5 pl-4 pr-5 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl border-2 border-white transition-all"
+          title="Open GreenBack AI Advisor Conversation"
+        >
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-300" />
+          </span>
+          <Sparkles className="w-4 h-4" />
+          <div className="text-left">
+            <div className="text-xs font-bold leading-none">
+              {floatingAiOpen ? 'Hide AI Chat' : 'Ask AI Grant Agent'}
+            </div>
+            <div className="text-[10px] text-emerald-100 leading-tight mt-0.5">
+              Online &bull; View Full Chat
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* =====================================================================
+          MODAL: UPLOAD / EDIT ACCOUNTING CSV SUMMARY
+      ===================================================================== */}
+      {csvModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">Upload or Edit Accounting CSV Summary</h3>
+              <button
+                onClick={() => setCsvModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCsv} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-600 mb-1">Company Name</label>
+                <input
+                  type="text"
+                  value={formState.name}
+                  onChange={e => setFormState({ ...formState, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 mb-1">Notification Email Address</label>
+                <input
+                  type="email"
+                  value={formState.email}
+                  onChange={e => setFormState({ ...formState, email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 mb-1">Utah Location</label>
+                <select
+                  value={formState.location}
+                  onChange={e => setFormState({ ...formState, location: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900"
+                >
+                  <option value="Salt Lake County, UT">Salt Lake County, UT (Urban)</option>
+                  <option value="Utah County, UT">Utah County, UT (Urban)</option>
+                  <option value="Grand County, UT (Rural)">Grand County, UT (Rural - USDA Eligible)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-slate-600 mb-1">Revenue ($)</label>
+                  <input
+                    type="number"
+                    value={formState.revenue}
+                    onChange={e => setFormState({ ...formState, revenue: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-600 mb-1">Cash ($)</label>
+                  <input
+                    type="number"
+                    value={formState.cashReserves}
+                    onChange={e => setFormState({ ...formState, cashReserves: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-emerald-700 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-600 mb-1">Energy/Fuel ($)</label>
+                  <input
+                    type="number"
+                    value={formState.fuelAndEnergySpend}
+                    onChange={e => setFormState({ ...formState, fuelAndEnergySpend: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-amber-600 font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setCsvModalOpen(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  Import & Recalculate
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
